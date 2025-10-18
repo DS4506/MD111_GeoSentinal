@@ -6,8 +6,31 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		47B20F282E9AE7F5004232E1 /* MapEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F242E9AE7F5004232E1 /* MapEditorView.swift */; };
+		47B20F292E9AE7F5004232E1 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F262E9AE7F5004232E1 /* SettingsView.swift */; };
+		47B20F2A2E9AE7F5004232E1 /* DebugConsoleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F232E9AE7F5004232E1 /* DebugConsoleView.swift */; };
+		47B20F2B2E9AE7F5004232E1 /* RootAndListViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F252E9AE7F5004232E1 /* RootAndListViews.swift */; };
+		47B20F2D2E9AE7F5004232E1 /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F1D2E9AE7F5004232E1 /* NotificationService.swift */; };
+		47B20F2E2E9AE7F5004232E1 /* Persistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F1F2E9AE7F5004232E1 /* Persistence.swift */; };
+		47B20F2F2E9AE7F5004232E1 /* GeoVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F212E9AE7F5004232E1 /* GeoVM.swift */; };
+		47B20F302E9AE7F5004232E1 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F1C2E9AE7F5004232E1 /* LocationService.swift */; };
+		47B20F312E9AE7F5004232E1 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F192E9AE7F5004232E1 /* Models.swift */; };
+		47B20F322E9AE7F5004232E1 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 47B20F1B2E9AE7F5004232E1 /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		47B20F0A2E9AE6CD004232E1 /* GeoSentinelPro.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = GeoSentinelPro.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		47B20F192E9AE7F5004232E1 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		47B20F1B2E9AE7F5004232E1 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		47B20F1C2E9AE7F5004232E1 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		47B20F1D2E9AE7F5004232E1 /* NotificationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationService.swift; sourceTree = "<group>"; };
+		47B20F1F2E9AE7F5004232E1 /* Persistence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Persistence.swift; sourceTree = "<group>"; };
+		47B20F212E9AE7F5004232E1 /* GeoVM.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoVM.swift; sourceTree = "<group>"; };
+		47B20F232E9AE7F5004232E1 /* DebugConsoleView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugConsoleView.swift; sourceTree = "<group>"; };
+		47B20F242E9AE7F5004232E1 /* MapEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapEditorView.swift; sourceTree = "<group>"; };
+		47B20F252E9AE7F5004232E1 /* RootAndListViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootAndListViews.swift; sourceTree = "<group>"; };
+		47B20F262E9AE7F5004232E1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -33,6 +56,12 @@
 			isa = PBXGroup;
 			children = (
 				47B20F0C2E9AE6CD004232E1 /* GeoSentinelPro */,
+				47B20F1A2E9AE7F5004232E1 /* Models */,
+				47B20F1B2E9AE7F5004232E1 /* README.md */,
+				47B20F1E2E9AE7F5004232E1 /* Services */,
+				47B20F202E9AE7F5004232E1 /* Utilities */,
+				47B20F222E9AE7F5004232E1 /* ViewModel */,
+				47B20F272E9AE7F5004232E1 /* Views */,
 				47B20F0B2E9AE6CD004232E1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +72,50 @@
 				47B20F0A2E9AE6CD004232E1 /* GeoSentinelPro.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		47B20F1A2E9AE7F5004232E1 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				47B20F192E9AE7F5004232E1 /* Models.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		47B20F1E2E9AE7F5004232E1 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				47B20F1C2E9AE7F5004232E1 /* LocationService.swift */,
+				47B20F1D2E9AE7F5004232E1 /* NotificationService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		47B20F202E9AE7F5004232E1 /* Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				47B20F1F2E9AE7F5004232E1 /* Persistence.swift */,
+			);
+			path = Utilities;
+			sourceTree = "<group>";
+		};
+		47B20F222E9AE7F5004232E1 /* ViewModel */ = {
+			isa = PBXGroup;
+			children = (
+				47B20F212E9AE7F5004232E1 /* GeoVM.swift */,
+			);
+			path = ViewModel;
+			sourceTree = "<group>";
+		};
+		47B20F272E9AE7F5004232E1 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				47B20F232E9AE7F5004232E1 /* DebugConsoleView.swift */,
+				47B20F242E9AE7F5004232E1 /* MapEditorView.swift */,
+				47B20F252E9AE7F5004232E1 /* RootAndListViews.swift */,
+				47B20F262E9AE7F5004232E1 /* SettingsView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -109,6 +182,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				47B20F322E9AE7F5004232E1 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +193,15 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				47B20F282E9AE7F5004232E1 /* MapEditorView.swift in Sources */,
+				47B20F292E9AE7F5004232E1 /* SettingsView.swift in Sources */,
+				47B20F2A2E9AE7F5004232E1 /* DebugConsoleView.swift in Sources */,
+				47B20F2B2E9AE7F5004232E1 /* RootAndListViews.swift in Sources */,
+				47B20F2D2E9AE7F5004232E1 /* NotificationService.swift in Sources */,
+				47B20F2E2E9AE7F5004232E1 /* Persistence.swift in Sources */,
+				47B20F2F2E9AE7F5004232E1 /* GeoVM.swift in Sources */,
+				47B20F302E9AE7F5004232E1 /* LocationService.swift in Sources */,
+				47B20F312E9AE7F5004232E1 /* Models.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -256,7 +339,10 @@
 				DEVELOPMENT_TEAM = A3PF3W86P6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = GeoSentinelPro/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "\"GeoSentinel Pro needs your location to monitor your geofences while using the app\"";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
@@ -288,7 +374,10 @@
 				DEVELOPMENT_TEAM = A3PF3W86P6;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_FILE = GeoSentinelPro/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "\"GeoSentinel Pro needs your location to monitor your geofences while using the app\"";
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
