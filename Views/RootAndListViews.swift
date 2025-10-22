@@ -1,3 +1,4 @@
+
 import SwiftUI
 import MapKit
 
@@ -8,86 +9,116 @@ struct RootView: View {
         TabView {
             RegionListView()
                 .tabItem { Label("Regions", systemImage: "mappin.and.ellipse") }
+
             MapEditorView()
                 .tabItem { Label("Map", systemImage: "map.circle") }
+
             DebugConsoleView()
                 .tabItem { Label("Debug", systemImage: "terminal") }
+
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
         }
     }
 }
 
+// MARK: - Region List + Editor
 struct RegionListView: View {
     @EnvironmentObject var vm: GeoVM
-    @State private var editing: GeoRegion? = nil
+    @State private var showingAdd = false
+    @State private var draft = GeoRegion(name: "New Place", latitude: 0, longitude: 0, radius: 200)
 
     var body: some View {
-        NavigationStack {
+        NavigationView {
             List {
                 ForEach(vm.regions) { r in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(r.name).font(.headline)
-                            Text("\(r.latitude, specifier: "%.5f"), \(r.longitude, specifier: "%.5f") • \(Int(r.radius)) m")
-                                .font(.caption).foregroundStyle(.secondary)
-                            if let state = vm.presence[r.id]?.presence {
-                                Text(state.rawValue.capitalized).font(.caption2)
+                    NavigationLink(
+                        destination: RegionEditView(region: r) { updated in
+                            if let idx = vm.regions.firstIndex(where: { $0.id == updated.id }) {
+                                vm.regions[idx] = updated
+                                vm.save()
                             }
                         }
-                        Spacer()
-                        Toggle("", isOn: Binding(
-                            get: { r.enabled },
-                            set: { _ in vm.toggleEnabled(r.id) }
-                        ))
-                        .labelsHidden()
-                        Button { editing = r } label { Image(systemName: "pencil") }
-                            .buttonStyle(.borderless)
+                    ) {
+                        VStack(alignment: .leading) {
+                            HStack {
+                                Text(r.name).font(.headline)
+                                if let p = vm.presence[r.id]?.presence {
+                                    Text(p.rawValue.capitalized)
+                                        .font(.caption)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(Color.secondary.opacity(0.15))
+                                        .cornerRadius(4)
+                                }
+                            }
+                            Text("Lat \(r.latitude), Lon \(r.longitude), \(Int(r.radius)) m")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 .onDelete { idx in
-                    for i in idx { vm.deleteRegion(vm.regions[i].id) }
+                    for i in idx { vm.removeRegion(id: vm.regions[i].id) }
                 }
             }
-            .navigationTitle("GeoSentinel Pro")
+            .navigationTitle("Regions")
+            // Use the older, universally supported toolbar initializer to avoid
+            // “Trailing closure passed to parameter of type 'Visibility' …” and “Cannot find 'label' in scope”.
             .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button { editing = GeoRegion(name: "New Fence", latitude: 32.5149, longitude: -117.0382, radius: 200) } label {
-                        Label("Add", systemImage: "plus")
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: { showingAdd = true }) {
+                        Image(systemName: "plus")
                     }
                 }
             }
-            .sheet(item: $editing) { region in
-                RegionEditorSheet(region: region) { updated in
-                    if vm.regions.contains(where: { $0.id == updated.id }) { vm.updateRegion(updated) }
-                    else { vm.addRegion(updated) }
+            .sheet(isPresented: $showingAdd) {
+                NavigationView {
+                    RegionEditView(region: draft) { newR in
+                        vm.addRegion(newR)
+                        draft = GeoRegion(name: "New Place", latitude: 0, longitude: 0, radius: 200)
+                    }
+                    .navigationTitle("New Region")
                 }
             }
         }
     }
 }
 
-struct RegionEditorSheet: View {
+struct RegionEditView: View {
     @Environment(\.dismiss) private var dismiss
     @State var region: GeoRegion
     var onSave: (GeoRegion) -> Void
 
     var body: some View {
-        NavigationStack {
-            Form {
+        Form {
+            Section(header: Text("Basics")) {
                 TextField("Name", text: $region.name)
-                Stepper("Radius: \(Int(region.radius)) m", value: $region.radius, in: 50...2000, step: 25)
+                Toggle("Enabled", isOn: $region.enabled)
+                Stepper("Radius: \(Int(region.radius)) m", value: $region.radius, in: 50...1000, step: 10)
                 Toggle("Notify on Entry", isOn: $region.notifyOnEntry)
                 Toggle("Notify on Exit", isOn: $region.notifyOnExit)
+            }
+            Section(header: Text("Location")) {
                 HStack {
-                    Text("Lat"); TextField("Lat", value: $region.latitude, format: .number).keyboardType(.decimalPad)
-                    Text("Lon"); TextField("Lon", value: $region.longitude, format: .number).keyboardType(.decimalPad)
+                    Text("Lat")
+                    TextField("Lat", value: $region.latitude, format: .number)
+                        .keyboardType(.decimalPad)
+                }
+                HStack {
+                    Text("Lon")
+                    TextField("Lon", value: $region.longitude, format: .number)
+                        .keyboardType(.decimalPad)
                 }
             }
-            .navigationTitle("Edit Region")
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Save") { onSave(region); dismiss() } }
+        }
+        .navigationTitle("Edit Region")
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { onSave(region); dismiss() }
             }
         }
     }

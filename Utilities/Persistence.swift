@@ -1,3 +1,4 @@
+
 import Foundation
 import CoreLocation
 
@@ -13,11 +14,18 @@ struct Persistence {
         do {
             let data = try JSONEncoder().encode(value)
             UserDefaults.standard.set(data, forKey: key)
-        } catch { print("Persist encode error: \(error)") }
+        } catch {
+            print("Persist encode error: \(error)")
+        }
     }
+
     static func load<T: Codable>(_ type: T.Type, key: String, default value: T) -> T {
         guard let data = UserDefaults.standard.data(forKey: key) else { return value }
-        do { return try JSONDecoder().decode(T.self, from: data) }
-        catch { print("Persist decode error: \(error)"); return value }
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            print("Persist decode error: \(error)")
+            return value
+        }
     }
 }

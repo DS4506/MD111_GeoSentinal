@@ -1,3 +1,4 @@
+
 import SwiftUI
 import UserNotifications
 
@@ -17,23 +18,37 @@ struct GeoSentinelProApp: App {
     }
 }
 
+// MARK: - AppDelegate
 final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
-    func application(_ application: UIApplication,
-                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
         UNUserNotificationCenter.current().delegate = self
-        Task { try? await NotificationService.shared.register() }
+
+        // These two were reported as “no member” in your screenshot. They exist below in NotificationService.swift.
+        NotificationService.shared.configureCategories()
+        Task {
+            _ = await NotificationService.shared.requestAuthorization()
+        }
         return true
     }
 
-    // Foreground notification presentation
-    func userNotificationCenter(_ center: UNUserNotificationCenter,
-                                willPresent notification: UNNotification,
-                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        completionHandler([.banner, .sound, .list])
+    // Foreground presentation
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        completionHandler([.banner, .list, .sound])
     }
 
-    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
-                                withCompletionHandler completionHandler: @escaping () -> Void) {
+    // Action handling
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
         NotificationService.shared.handleAction(response: response)
         completionHandler()
     }

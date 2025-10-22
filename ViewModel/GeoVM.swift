@@ -1,3 +1,4 @@
+
 import Foundation
 import CoreLocation
 import Combine
@@ -11,8 +12,8 @@ final class GeoVM: NSObject, ObservableObject {
     @Published var logs: [LogEntry] = []
     @Published var presence: [UUID: RegionRuntimeState] = [:]
 
-    private var timers: [UUID: Task<Void, Never>] = [:]
-    private var exitTimers: [UUID: Task<Void, Never>] = [:]
+    private var timers: [UUID: Task<Void, Never>] = [:]       // dwell timers
+    private var exitTimers: [UUID: Task<Void, Never>] = [:]   // exit debounce timers
     private var cancellables: Set<AnyCancellable> = []
 
     private let location = LocationService.shared
@@ -20,6 +21,7 @@ final class GeoVM: NSObject, ObservableObject {
     override init() {
         super.init()
         location.delegate = self
+
         NotificationCenter.default.addObserver(forName: .gsSnooze15, object: nil, queue: .main) { [weak self] n in
             guard let idStr = n.object as? String, let uuid = UUID(uuidString: idStr) else { return }
             self?.snooze(regionID: uuid, minutes: 15)
@@ -30,6 +32,7 @@ final class GeoVM: NSObject, ObservableObject {
         }
     }
 
+    // MARK: - Bootstrap
     func bootstrap() async {
         regions = Persistence.load([GeoRegion].self, key: StoreKeys.regions, default: [])
         settings = Persistence.load(GeoSettings.self, key: StoreKeys.settings, default: GeoSettings())
@@ -48,51 +51,47 @@ final class GeoVM: NSObject, ObservableObject {
         location.requestAlways()
     }
 
+    // MARK: - Persistence
     func save() {
         Persistence.save(regions, key: StoreKeys.regions)
         Persistence.save(settings, key: StoreKeys.settings)
         Persistence.save(presence, key: StoreKeys.runtime)
-    }
-
-    // MARK: - Region CRUD
-    func addRegion(_ r: GeoRegion) {
-        regions.append(r)
-        presence[r.id] = RegionRuntimeState()
-        save()
+        Persistence.save(logs, key: StoreKeys.logs)
+        log("Saved.")
         Task { await updateMonitoringMode() }
-        log("Added region: \(r.name) (\(Int(r.radius)) m).")
     }
 
-    func updateRegion(_ r: GeoRegion) {
-        guard let idx = regions.firstIndex(where: { $0.id == r.id }) else { return }
-        regions[idx] = r
+    // MARK: - Logging
+    func log(_ message: String) {
+        logs.insert(LogEntry(message: message), at: 0)
+    }
+
+    // MARK: - Region editing helpers
+    func addRegion(_ region: GeoRegion) {
+        regions.append(region)
         save()
-        Task { await updateMonitoringMode() }
-        log("Updated region: \(r.name).")
     }
 
-    func deleteRegion(_ id: UUID) {
-        if let idx = regions.firstIndex(where: { $0.id == id }) {
-            let r = regions.remove(at: idx)
-            presence[id] = nil
-            save()
-            Task { await updateMonitoringMode() }
-            log("Deleted region: \(r.name).")
-        }
-    }
-
-    func toggleEnabled(_ id: UUID) {
-        guard let idx = regions.firstIndex(where: { $0.id == id }) else { return }
-        regions[idx].enabled.toggle()
+    func removeRegion(id: UUID) {
+        regions.removeAll { $0.id == id }
+        timers[id]?.cancel()
+        timers[id] = nil
+        exitTimers[id]?.cancel()
+        exitTimers[id] = nil
+        presence[id] = nil
         save()
-        Task { await updateMonitoringMode() }
-        log("Toggled \(regions[idx].name) to \(regions[idx].enabled ? "enabled" : "disabled").")
     }
 
+    func clampRadius(_ r: Double) -> CLLocationDistance {
+        let minR = 50.0
+        let maxR = 1000.0
+        return max(minR, min(maxR, r))
+    }
+
+    // MARK: - Battery
     func toggleBatteryMode() {
-        settings.batteryMode = settings.batteryMode == .saver ? .highFidelity : .saver
+        settings.batteryMode = (settings.batteryMode == .saver) ? .highFidelity : .saver
         save()
-        Task { await updateMonitoringMode() }
         log("Battery mode: \(settings.batteryMode.title).")
     }
 
@@ -126,93 +125,175 @@ final class GeoVM: NSObject, ObservableObject {
         }
     }
 
-    private func clampRadius(_ rad: Double) -> Double {
-        if rad < 50 {
-            log("Warning: radius \(Int(rad))m is small—GPS jitter may cause noise. Clamped to 50 m.")
-            return 50
-        }
-        if rad > 2000 {
-            log("Warning: radius \(Int(rad))m exceeds 2000—clamped to 2000 m.")
-            return 2000
-        }
-        return rad
-    }
-    
+    // MARK: - Snooze
     func snooze(regionID: UUID, minutes: Int) {
-        var st = state(for: regionID)
-        st.snoozedUntil = Calendar.current.date(byAdding: .minute, value: minutes, to: Date())
-        setState(st, for: regionID)
-        log("Snoozed \(regionID) for \(minutes)m.")
-        
-    }
-    func log(_msg: String) {
-        log.insert(LogEntry(message: msg), at: 0)
-        Persistence.save(logs, key: StoreKeys.logs)
-    }
-
-    // MARK: - Event Handling
-    private func state(for id: UUID) -> RegionRuntimeState {
-        presence[id] ?? RegionRuntimeState()
-    }
-    private func setState(_ s: RegionRuntimeState, for id: UUID) {
-        presence[id] = s
+        var rt = presence[regionID, default: RegionRuntimeState()]
+        rt.snoozedUntil = Calendar.current.date(byAdding: .minute, value: minutes, to: Date())
+        presence[regionID] = rt
         save()
+        log("Snoozed \(regionID) for \(minutes)m.")
     }
 
     private func isSnoozed(_ id: UUID) -> Bool {
-        if let until = presence[id]?.snoozedUntil { return until > Date() }
+        if let until = presence[id]?.snoozedUntil {
+            return until > Date()
+        }
         return false
     }
 
-    func handleEnterRaw(id: UUID) {
-// TODO: Start a dwell timer of `settings.dwellSeconds`.
-// Record a RAW ENTER timestamp in `presence[id]`.
-// After the delay, call `confirmEnter(id:)` **iff** still inside / not snoozed.
-log("TODO: RAW ENTER received for \(id). Start dwell …")
+    // MARK: - Confirmed transitions
+    private func confirmEnter(_ id: UUID) {
+        var rt = presence[id, default: RegionRuntimeState()]
+        rt.lastConfirmedEnter = Date()
+        rt.presence = .inside
+        presence[id] = rt
+        save()
 
-}
-    func handleExitRaw(id: UUID) {
-        //TODO: Start a debounce timer of settings.debounceSecounds
-        //Record a RAW EXIT timestamp in presence[id]
-        // After the delay, call confirmExit(id:)**iff** still inside/ not snoozed
-        log("TODO: RAW EXIT received for \(id). Start debounce …")
+        if let region = regions.first(where: { $0.id == id }) {
+            NotificationService.shared.scheduleRegionNotification(
+                regionID: id,
+                title: "Arrived: \(region.name)",
+                body: "You entered \(region.name)"
+            )
+        }
+        log("ENTER confirmed for \(id).")
     }
+
+    private func confirmExit(_ id: UUID) {
+        var rt = presence[id, default: RegionRuntimeState()]
+        rt.lastConfirmedExit = Date()
+        rt.presence = .outside
+        presence[id] = rt
+        save()
+
+        if let region = regions.first(where: { $0.id == id }) {
+            NotificationService.shared.scheduleRegionNotification(
+                regionID: id,
+                title: "Left: \(region.name)",
+                body: "You exited \(region.name)"
+            )
+        }
+        log("EXIT confirmed for \(id).")
+    }
+
+    // MARK: - Raw events and timers
+    private func startDwellTimer(for id: UUID) {
+        timers[id]?.cancel()
+        let seconds = max(1, settings.dwellSeconds)
+        timers[id] = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
+            guard let self = self, !Task.isCancelled else { return }
+
+            // If an exit debounce is running, entering cancels it
+            self.exitTimers[id]?.cancel()
+            self.exitTimers[id] = nil
+
+            self.confirmEnter(id)
+            self.timers[id] = nil
+        }
+    }
+
+    private func startExitDebounce(for id: UUID) {
+        exitTimers[id]?.cancel()
+        let seconds = max(1, settings.exitDebounceSeconds)
+        exitTimers[id] = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(seconds) * 1_000_000_000)
+            guard let self = self, !Task.isCancelled else { return }
+            self.confirmExit(id)
+            self.exitTimers[id] = nil
+        }
+    }
+}
 
 // MARK: - LocationServiceDelegate
 extension GeoVM: LocationServiceDelegate {
+    // Auth change handling
     func didChangeAuth(status: CLAuthorizationStatus, precise: Bool) {
-    preciseEnabled = precise
-    // TODO: Reflect `status` in `authStatusDescription` and log changes.
-    log("TODO: Auth changed. Precise=\(precise)")
-}
+        preciseEnabled = precise
 
-func didEnter(region: CLRegion) {
-    // TODO: Parse UUID from region.identifier and call handleEnterRaw(id:)
-    log("TODO: didEnterRegion fired.")
-}
+        let text: String
+        switch status {
+        case .notDetermined: text = "Not Determined"
+        case .restricted:    text = "Restricted"
+        case .denied:        text = "Denied"
+        case .authorizedWhenInUse: text = "When In Use"
+        case .authorizedAlways:    text = "Always"
+        @unknown default:    text = "Unknown"
+        }
+        authStatusDescription = "\(text) • Precise: \(precise ? "On" : "Off")"
+        log("Auth changed. \(authStatusDescription)")
+    }
 
-func didExit(region: CLRegion) {
-    // TODO: Parse UUID from region.identifier and call handleExitRaw(id:)
-    log("TODO: didExitRegion fired.")
-}
+    // Raw enter
+    func didEnter(region: CLRegion) {
+        guard let id = UUID(uuidString: region.identifier) else { return }
+        if isSnoozed(id) { log("ENTER ignored for \(id). Snoozed."); return }
 
-func didVisit(_ visit: CLVisit) {
-    // Optional: Reconcile state using visits in Saver mode
-    log("TODO: didVisit: arrival/dep available.")
-}
+        var rt = presence[id, default: RegionRuntimeState()]
+        rt.lastEnterRaw = Date()
+        presence[id] = rt
+        save()
 
-func didUpdateSignificant(_ location: CLLocation) {
-    // Optional: In Saver mode, re-center monitored set if the user moved far
-    log("TODO: Significant location change received.")
-}
+        // Start a dwell timer of `settings.dwellSeconds`.
+        startDwellTimer(for: id)
+        log("RAW ENTER for \(id). Dwell \(settings.dwellSeconds)s started.")
+    }
 
-func didFail(_ error: Error) {
-    log("TODO: Location error: \(error.localizedDescription)")
-}
+    // Raw exit
+    func didExit(region: CLRegion) {
+        guard let id = UUID(uuidString: region.identifier) else { return }
+        if isSnoozed(id) { log("EXIT ignored for \(id). Snoozed."); return }
 
-func didDetermineState(_ state: CLRegionState, for region: CLRegion) {
-    // TODO: Update presence[id] based on state (.inside/.outside/.unknown)
-    log("TODO: didDetermineState for region.")
-}
+        var rt = presence[id, default: RegionRuntimeState()]
+        rt.lastExitRaw = Date()
+        presence[id] = rt
+        save()
 
+        // Cancel any pending dwell timer, then start exit debounce
+        timers[id]?.cancel()
+        timers[id] = nil
+
+        // Start a debounce timer of settings.exitDebounceSeconds
+        startExitDebounce(for: id)
+        log("RAW EXIT for \(id). Debounce \(settings.exitDebounceSeconds)s started.")
+    }
+
+    // Visits
+    func didVisit(_ visit: CLVisit) {
+        log("Visit received. Arrival: \(visit.arrivalDate), Departure: \(visit.departureDate)")
+    }
+
+    // Significant changes
+    func didUpdateSignificant(_ location: CLLocation) {
+        log("Significant location update @ \(location.coordinate.latitude), \(location.coordinate.longitude)")
+        // In Saver mode you could re-center your monitored set based on distance moved.
+    }
+
+    // Errors
+    func didFail(_ error: Error) {
+        log("Location error: \(error.localizedDescription)")
+    }
+
+    // State queries
+    func didDetermineState(_ state: CLRegionState, for region: CLRegion) {
+        guard let id = UUID(uuidString: region.identifier) else {
+            log("State for unknown region id \(region.identifier)")
+            return
+        }
+
+        var rt = presence[id, default: RegionRuntimeState()]
+        switch state {
+        case .inside:
+            rt.presence = .inside
+        case .outside:
+            rt.presence = .outside
+        case .unknown:
+            rt.presence = .unknown
+        @unknown default:
+            rt.presence = .unknown
+        }
+        presence[id] = rt
+        save()
+        log("State determined for \(id): \(rt.presence.rawValue)")
+    }
 }

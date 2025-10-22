@@ -1,3 +1,4 @@
+
 import Foundation
 import CoreLocation
 
@@ -14,49 +15,63 @@ protocol LocationServiceDelegate: AnyObject {
 final class LocationService: NSObject {
     static let shared = LocationService()
 
-    private let mgr = CLLocationManager()
+    private let manager = CLLocationManager()
     weak var delegate: LocationServiceDelegate?
 
     private override init() {
         super.init()
-        mgr.delegate = self
-        mgr.pausesLocationUpdatesAutomatically = true
-        mgr.allowsBackgroundLocationUpdates = true
-        mgr.activityType = .other
-        mgr.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        manager.delegate = self
+        manager.pausesLocationUpdatesAutomatically = true
+        manager.allowsBackgroundLocationUpdates = true
+        manager.showsBackgroundLocationIndicator = false
+        manager.activityType = .other
+        manager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        manager.distanceFilter = 50
     }
 
-    func requestWhenInUse() { mgr.requestWhenInUseAuthorization() }
+    // MARK: - Auth
+    func requestWhenInUse() {
+        switch manager.authorizationStatus {
+        case .notDetermined: manager.requestWhenInUseAuthorization()
+        default: break
+        }
+        notifyAuthChanged()
+    }
 
-    func requestAlways() { mgr.requestAlwaysAuthorization() }
+    func requestAlways() {
+        manager.requestAlwaysAuthorization()
+    }
 
+    // MARK: - Monitoring
     func startMonitoring(region: CLCircularRegion) {
-        mgr.startMonitoring(for: region)
-        mgr.requestState(for: region)
+        manager.startMonitoring(for: region)
+        manager.requestState(for: region)
     }
 
     func stopMonitoring(region: CLCircularRegion) {
-        mgr.stopMonitoring(for: region)
+        manager.stopMonitoring(for: region)
     }
 
-    func monitoredRegions() -> [CLRegion] { Array(mgr.monitoredRegions) }
+    func monitoredRegions() -> [CLRegion] {
+        Array(manager.monitoredRegions)
+    }
 
-    func requestState(for region: CLRegion) { mgr.requestState(for: region) }
+    // MARK: - Significant + Visits
+    func startSignificant() { manager.startMonitoringSignificantLocationChanges() }
+    func stopSignificant()  { manager.stopMonitoringSignificantLocationChanges() }
+    func startVisits()      { manager.startMonitoringVisits() }
+    func stopVisits()       { manager.stopMonitoringVisits() }
 
-    func startSignificant() { mgr.startMonitoringSignificantLocationChanges() }
-    func stopSignificant() { mgr.stopMonitoringSignificantLocationChanges() }
-
-    func startVisits() { mgr.startMonitoringVisits() }
-    func stopVisits() { mgr.stopMonitoringVisits() }
-
-    func requestLocation() { mgr.requestLocation() }
+    // MARK: - Helpers
+    private func notifyAuthChanged() {
+        let precise = manager.accuracyAuthorization == .fullAccuracy
+        delegate?.didChangeAuth(status: manager.authorizationStatus, precise: precise)
+    }
 }
 
 extension LocationService: CLLocationManagerDelegate {
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        let status = manager.authorizationStatus
-        let precise = manager.accuracyAuthorization == .fullAccuracy
-        delegate?.didChangeAuth(status: status, precise: precise)
+        notifyAuthChanged()
     }
 
     func locationManager(_ manager: CLLocationManager, didEnterRegion region: CLRegion) {

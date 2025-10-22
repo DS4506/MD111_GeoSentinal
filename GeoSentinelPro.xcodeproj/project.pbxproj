@@ -16,7 +16,6 @@
 		47B20F2F2E9AE7F5004232E1 /* GeoVM.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F212E9AE7F5004232E1 /* GeoVM.swift */; };
 		47B20F302E9AE7F5004232E1 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F1C2E9AE7F5004232E1 /* LocationService.swift */; };
 		47B20F312E9AE7F5004232E1 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47B20F192E9AE7F5004232E1 /* Models.swift */; };
-		47B20F322E9AE7F5004232E1 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = 47B20F1B2E9AE7F5004232E1 /* README.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,9 +32,22 @@
 		47B20F262E9AE7F5004232E1 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		4784561E2EA374AC002F4DEE /* Exceptions for "GeoSentinelPro" folder in "GeoSentinelPro" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 47B20F092E9AE6CD004232E1 /* GeoSentinelPro */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		47B20F0C2E9AE6CD004232E1 /* GeoSentinelPro */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				4784561E2EA374AC002F4DEE /* Exceptions for "GeoSentinelPro" folder in "GeoSentinelPro" target */,
+			);
 			path = GeoSentinelPro;
 			sourceTree = "<group>";
 		};
@@ -182,7 +194,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				47B20F322E9AE7F5004232E1 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
